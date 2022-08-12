@@ -3,6 +3,9 @@
   "scripts": {
     "test": "ts-node -r dotenv-override-true/config src/index.ts"
   },
+  "dependencies": {
+    "@rc-ex/core": "^0.14.0"
+  },
   "devDependencies": {
     "@types/node": "^18.7.2",
     "dotenv-override-true": "^6.2.2",
