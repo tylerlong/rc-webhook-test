@@ -1,5 +1,4 @@
 import RingCentral from '@rc-ex/core';
-import PubNubExtension from '@rc-ex/pubnub';
 
 const rc = new RingCentral({
   server: process.env.RINGCENTRAL_SERVER_URL,
@@ -9,21 +8,43 @@ const rc = new RingCentral({
 
 const main = async () => {
   rc.token = {access_token: process.env.RINGCENTRAL_TOKEN};
-  console.log(rc.token?.access_token);
-  const extInfo = await rc.restapi().account().extension().get();
-  console.log(JSON.stringify(extInfo, null, 2));
+  await rc.authorize({
+    username: process.env.RINGCENTRAL_USERNAME!,
+    extension: process.env.RINGCENTRAL_EXTENSION,
+    password: process.env.RINGCENTRAL_PASSWORD!,
+  });
 
-  const pubNubExtension = new PubNubExtension();
-  await rc.installExtension(pubNubExtension);
-  const subInfo = await pubNubExtension.subscribe(
-    [
-      '/restapi/v1.0/account/~/telephony/sessions?direction=Inbound&missedCall=true',
-    ],
-    event => {
-      console.log(JSON.stringify(event, null, 2));
-    }
-  );
-  console.log(JSON.stringify(subInfo._subscriptionInfo, null, 2));
+  // Create sub
+  const r = await rc
+    .restapi()
+    .subscription()
+    .post({
+      eventFilters: ['/restapi/v1.0/account/~/telephony/sessions'],
+      deliveryMode: {
+        transportType: 'WebHook',
+        address: 'https://4bb1-67-188-100-185.ngrok.io/webhook',
+      },
+      expiresIn: 1800,
+    });
+  console.log(r.id);
+
+  // // Delete sub
+  // await rc
+  //   .restapi()
+  //   .subscription('61ef4105-29bc-4101-8f53-1f881d79676e')
+  //   .delete();
+
+  // // trigger notification
+  // const extensionId = (await rc.restapi().account().extension().get())
+  //   .id as unknown as string;
+  // await rc
+  //   .restapi()
+  //   .account()
+  //   .extension()
+  //   .companyPager()
+  //   .post({from: {extensionId}, to: [{extensionId}], text: 'Hello world'});
+
+  await rc.revoke();
 };
 
 main();
