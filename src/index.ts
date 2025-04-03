@@ -1,4 +1,5 @@
-import RingCentral from '@rc-ex/core';
+import RingCentral from "@rc-ex/core";
+import DebugExtension from "@rc-ex/debug";
 
 const rc = new RingCentral({
   server: process.env.RINGCENTRAL_SERVER_URL,
@@ -7,44 +8,25 @@ const rc = new RingCentral({
 });
 
 const main = async () => {
-  rc.token = {access_token: process.env.RINGCENTRAL_TOKEN};
   await rc.authorize({
-    username: process.env.RINGCENTRAL_USERNAME!,
-    extension: process.env.RINGCENTRAL_EXTENSION,
-    password: process.env.RINGCENTRAL_PASSWORD!,
+    jwt: process.env.RINGCENTRAL_JWT_TOKEN!,
   });
 
-  // Create sub
+  const debugExtension = new DebugExtension();
+  await rc.installExtension(debugExtension as any);
+
   const r = await rc
     .restapi()
     .subscription()
     .post({
-      eventFilters: ['/restapi/v1.0/account/~/telephony/sessions'],
+      eventFilters: ["/restapi/v1.0/account/~/telephony/sessions"],
       deliveryMode: {
-        transportType: 'WebHook',
-        address: 'https://4bb1-67-188-100-185.ngrok.io/webhook',
+        transportType: "WebHook",
+        address: process.env.WEBHOOK_URL,
       },
-      expiresIn: 1800,
+      expiresIn: 600,
     });
-  console.log(r.id);
-
-  // // Delete sub
-  // await rc
-  //   .restapi()
-  //   .subscription('61ef4105-29bc-4101-8f53-1f881d79676e')
-  //   .delete();
-
-  // // trigger notification
-  // const extensionId = (await rc.restapi().account().extension().get())
-  //   .id as unknown as string;
-  // await rc
-  //   .restapi()
-  //   .account()
-  //   .extension()
-  //   .companyPager()
-  //   .post({from: {extensionId}, to: [{extensionId}], text: 'Hello world'});
-
-  await rc.revoke();
+  console.log(JSON.stringify(r, null, 2));
 };
 
 main();
